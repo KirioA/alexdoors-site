@@ -119,7 +119,7 @@ if (!motionOK || !hasGL || !libs) {
     ScrollTrigger.create({ trigger: intro, start: 'top top', end: 'bottom bottom', onUpdate: s => set(last = s.progress), onRefresh: s => set(last = s.progress) });
     new IntersectionObserver(([e]) => { visible = e.isIntersecting; set(last); }).observe(intro);
     // клик по двери или подсказке — плавно открыть и войти
-    const open = () => lenis.scrollTo(intro.offsetTop + (intro.offsetHeight - innerHeight) * 0.92, { duration: 3.2 });
+    const open = () => lenis.scrollTo(intro.offsetTop + (intro.offsetHeight - innerHeight) * 0.92, { duration: 3.6, easing: t => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2) });   // без easing Lenis игнорирует duration
     intro.querySelector('canvas').addEventListener('click', () => last < 0.5 && open());
     hint.addEventListener('click', open);
     if (!mobile) addEventListener('pointermove', e => door.pointer(e.clientX / innerWidth * 2 - 1, e.clientY / innerHeight * 2 - 1));

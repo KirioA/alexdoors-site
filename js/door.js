@@ -87,9 +87,9 @@ export function createDoor(canvas, { frames, mobile }) {
   // рамки с работами справа от двери
   const loader = new THREE.TextureLoader();
   const FR = [
-    { x: 1.3, y: 1.5, w: 0.62, h: 0.78 },
-    { x: 2.03, y: 1.72, w: 0.46, h: 0.58 },
-    { x: 2.03, y: 1.0, w: 0.46, h: 0.58 },
+    { x: 1.2, y: 1.5, w: 0.62, h: 0.78 },
+    { x: 1.86, y: 1.72, w: 0.44, h: 0.56 },
+    { x: 1.86, y: 1.02, w: 0.44, h: 0.56 },
   ];
   FR.forEach((f, i) => {
     const g = new THREE.Group();
