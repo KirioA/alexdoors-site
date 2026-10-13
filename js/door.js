@@ -43,6 +43,9 @@ export function createDoor(canvas, { frames, mobile }) {
     stem: new THREE.MeshStandardMaterial({ color: '#5b4632', roughness: 0.8 }),
     black: new THREE.MeshStandardMaterial({ color: '#232120', metalness: 0.6, roughness: 0.45 }),
     rug: new THREE.MeshStandardMaterial({ map: rugTex(), roughness: 1 }),
+    glass: new THREE.MeshPhysicalMaterial({ color: '#d5dcda', roughness: 0.18, transparent: true, opacity: 0.62 }),
+    room: new THREE.MeshBasicMaterial({ color: '#efe3cf' }),
+    graphite: new THREE.MeshStandardMaterial({ color: '#2e2f31', roughness: 0.5 }),
   };
 
   const mesh = (geo, mat, x = 0, y = 0, z = 0, parent = scene, shadow = true) => {
@@ -90,31 +93,66 @@ export function createDoor(canvas, { frames, mobile }) {
   corrLight.position.set(0, ch - 0.25, -2.2);
   scene.add(corrLight);
 
-  // рамки с работами справа от двери
+  // рамка с фото работы: строится лицом к +z в группе parent
   const loader = new THREE.TextureLoader();
-  const FR = [
-    { x: 1.2, y: 1.6, w: 0.62, h: 0.78 },
-    { x: 1.86, y: 1.9, w: 0.44, h: 0.56 },
-    { x: 1.86, y: 1.28, w: 0.44, h: 0.56 },
-  ];
-  FR.forEach((f, i) => {
+  let fi = 0;
+  function addFrame(parent, x, y, w, h) {
     const g = new THREE.Group();
-    g.position.set(f.x, f.y, WALL_T / 2);
-    scene.add(g);
+    g.position.set(x, y, 0);
+    parent.add(g);
     const B = 0.03, D = 0.03;
-    mesh(rbox(f.w, B, D, 0.004), M.walnut, 0, f.h / 2 - B / 2, D / 2, g);
-    mesh(rbox(f.w, B, D, 0.004), M.walnut, 0, -f.h / 2 + B / 2, D / 2, g);
-    mesh(rbox(B, f.h, D, 0.004), M.walnut, -f.w / 2 + B / 2, 0, D / 2, g);
-    mesh(rbox(B, f.h, D, 0.004), M.walnut, f.w / 2 - B / 2, 0, D / 2, g);
-    mesh(box(f.w - B * 2, f.h - B * 2, 0.004), M.mat, 0, 0, 0.004, g);
-    const tex = loader.load(frames[i % frames.length], () => (dirty = true));
+    mesh(rbox(w, B, D, 0.004), M.walnut, 0, h / 2 - B / 2, D / 2, g);
+    mesh(rbox(w, B, D, 0.004), M.walnut, 0, -h / 2 + B / 2, D / 2, g);
+    mesh(rbox(B, h, D, 0.004), M.walnut, -w / 2 + B / 2, 0, D / 2, g);
+    mesh(rbox(B, h, D, 0.004), M.walnut, w / 2 - B / 2, 0, D / 2, g);
+    mesh(box(w - B * 2, h - B * 2, 0.004), M.mat, 0, 0, 0.004, g);
+    const tex = loader.load(frames[fi++ % frames.length], () => (dirty = true));
     tex.colorSpace = THREE.SRGBColorSpace;
     tex.anisotropy = 8;
-    const pw = f.w - 0.16, ph = f.h - 0.16;
+    const pw = w - 0.16, ph = h - 0.16;
     tex.repeat.set(Math.min(1, pw / ph), Math.min(1, ph / pw));         // квадратное фото → обрезка под рамку
     tex.offset.set((1 - tex.repeat.x) / 2, (1 - tex.repeat.y) / 2);
     mesh(new THREE.PlaneGeometry(pw, ph), new THREE.MeshStandardMaterial({ map: tex, roughness: 0.6 }), 0, 0, 0.0065, g);
-  });
+  }
+  // стена прихожей: рамки справа от двери
+  const frontWall = new THREE.Group();
+  frontWall.position.z = WALL_T / 2;
+  scene.add(frontWall);
+  addFrame(frontWall, 1.2, 1.6, 0.62, 0.78);
+  addFrame(frontWall, 1.86, 1.9, 0.44, 0.56);
+  addFrame(frontWall, 1.86, 1.28, 0.44, 0.56);
+
+  // коридор-шоурум: слева стеклянная дверь, справа раздвижная LOFT, рамки, дорожка
+  const wallL = new THREE.Group(), wallR = new THREE.Group();
+  wallL.position.x = -cw / 2; wallL.rotation.y = Math.PI / 2;            // локальный +z смотрит в коридор
+  wallR.position.x = cw / 2; wallR.rotation.y = -Math.PI / 2;
+  scene.add(wallL, wallR);
+  // локальный x стены: слева x = -worldZ, справа x = worldZ
+  const glassX = 2.35, barnX = -2.55;
+  {
+    const g = new THREE.Group(); g.position.x = glassX; wallL.add(g);
+    const GW = 0.8, GH = 2.02, C = 0.07;
+    mesh(box(GW + 0.02, GH, 0.004), M.room, 0, GH / 2, 0.002, g, false);              // светлая комната за стеклом
+    mesh(new THREE.PlaneGeometry(GW, GH), M.glass, 0, GH / 2, 0.012, g, false);
+    for (const sx of [-1, 1]) mesh(rbox(C, GH + C, 0.022, 0.004), M.walnut, sx * (GW / 2 + C / 2), (GH + C) / 2, 0.011, g);
+    mesh(rbox(GW + C * 2, C, 0.022, 0.004), M.walnut, 0, GH + C / 2, 0.011, g);
+    mesh(new THREE.CylinderGeometry(0.009, 0.009, 0.32, 16), M.metal, GW / 2 - 0.09, 1.0, 0.045, g);
+    for (const y of [0.88, 1.12]) mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.03, 12), M.metal, GW / 2 - 0.09, y, 0.028, g).rotation.x = Math.PI / 2;
+  }
+  {
+    const g = new THREE.Group(); g.position.x = barnX; wallR.add(g);
+    mesh(rbox(2.0, 0.035, 0.02, 0.006), M.black, 0.3, 2.24, 0.02, g);
+    mesh(rbox(0.94, 2.1, 0.04, 0.006), M.graphite, 0, 1.08, 0.07, g);
+    for (const x of [-0.3, 0.3]) {
+      mesh(box(0.035, 0.22, 0.006), M.black, x, 2.14, 0.094, g);
+      mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.02, 24), M.black, x, 2.24, 0.06, g).rotation.x = Math.PI / 2;
+    }
+    mesh(rbox(0.022, 0.4, 0.022, 0.008), M.black, -0.36, 1.05, 0.11, g);
+  }
+  addFrame(wallL, 0.95, 1.5, 0.5, 0.64);
+  addFrame(wallL, 3.75, 1.5, 0.5, 0.64);
+  addFrame(wallR, -1.05, 1.5, 0.56, 0.7);
+  mesh(rbox(0.8, 0.01, 3.4, 0.004), M.rug, 0, 0.005, -2.55).receiveShadow = true;
 
   // бра слева от двери
   const sconce = new THREE.Group();

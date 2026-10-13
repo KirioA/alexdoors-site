@@ -9,16 +9,16 @@ const TYPES = [
 ];
 
 const CASES = [
-  { key: 'ash', n: 10, cover: 1, title: 'Массив ясеня', text: 'Скрытые петли, магнитные замки. Классика жанра.' },
-  { key: 'glass', n: 10, cover: 5, title: 'Стекло 8 мм и ясень', text: 'Калёное стекло, коробка и наличник — массив ясеня.' },
-  { key: 'wardrobe', n: 10, cover: 3, title: 'Шкаф-гардероб', text: '100% массив ясеня, резные фасады.' },
-  { key: 'loft', n: 5, cover: 2, title: 'Раздвижная LOFT', text: 'Чёрное полотно на открытой направляющей.' },
-  { key: 'double', n: 8, cover: 6, title: 'Двойная сдвижная', text: 'Сдвигается на стену в одну сторону.' },
-  { key: 'alder', n: 10, cover: 2, title: 'Массив ольхи', text: 'Эмаль и патина под золото.' },
-  { key: 'turnkey', n: 5, cover: 2, title: 'Квартира под ключ', text: 'Паркет, двери, рейки на стену и зеркало в раме.' },
-  { key: 'slide', n: 9, cover: 4, title: 'Раздвижные со стеклом', text: 'Полотна со стеклом сдвигаются вдоль стены.' },
-  { key: 'sauna', n: 7, cover: 4, title: 'Баня', text: 'Потолок и декор подгонялись вручную.' },
-  { key: 'led', n: 2, cover: 1, title: 'Стена с подсветкой', text: 'Доска на стене и встроенные LED-линии.' },
+  { key: 'ash', n: 10, cover: 1, date: 'октябрь 2021', title: 'Массив ясеня', text: 'Скрытые петли, магнитные замки. Классика жанра.', tags: ['Массив ясеня', 'Скрытые петли', 'Магнитные замки', 'Эмаль'] },
+  { key: 'glass', n: 10, cover: 5, date: 'март 2021', title: 'Стекло 8 мм и ясень', text: 'Калёное стекло, коробка и наличник — массив ясеня.', tags: ['Калёное стекло 8 мм', 'Коробка из ясеня', 'Наличник из ясеня'] },
+  { key: 'wardrobe', n: 10, cover: 3, date: 'июль 2021', title: 'Шкаф-гардероб', text: '100% массив ясеня, резные фасады. Оригинальное решение гардеробной.', tags: ['Массив ясеня', 'Резные фасады', 'Гардеробная'] },
+  { key: 'loft', n: 5, cover: 2, date: 'апрель 2021', title: 'Раздвижная LOFT', text: 'Чёрное полотно на открытой направляющей.', tags: ['Раздвижная система', 'Открытая направляющая'] },
+  { key: 'double', n: 8, cover: 6, date: 'январь 2021', title: 'Двойная сдвижная', text: 'Сдвигается на стену в одну сторону — выход при ограниченном пространстве.', tags: ['Две створки', 'Сдвиг в одну сторону', 'Стекло'] },
+  { key: 'alder', n: 10, cover: 2, date: 'июль 2021', title: 'Массив ольхи', text: '100% массив ольхи. Покрытие — эмаль и патина под золото.', tags: ['Массив ольхи', 'Эмаль', 'Патина под золото'] },
+  { key: 'turnkey', n: 5, cover: 2, date: 'июль 2021', title: 'Квартира под ключ', text: 'Укладка паркетной доски, монтаж дверей, декоративные рейки на стену и зеркало в раме.', tags: ['Паркетная доска', 'Двери', 'Рейки', 'Зеркало'] },
+  { key: 'slide', n: 9, cover: 4, date: 'октябрь 2021', title: 'Раздвижные со стеклом', text: 'Полотна со стеклом сдвигаются вдоль стены.', tags: ['Раздвижные', 'Стекло'] },
+  { key: 'sauna', n: 7, cover: 4, date: 'март 2021', title: 'Баня', text: 'Все декоративные элементы и потолок изготовлялись и подгонялись вручную.', tags: ['Вагонка', 'Потолок', 'Ручная подгонка', 'Стеклянная дверь'] },
+  { key: 'led', n: 2, cover: 1, date: 'март 2023', title: 'Стена с подсветкой', text: 'Доска на стене и встроенные LED-линии.', tags: ['Доска на стене', 'LED-подсветка'] },
 ];
 
 const pad = i => String(i).padStart(2, '0');
@@ -37,37 +37,51 @@ document.querySelector('[data-cases]').innerHTML = CASES.map((c, i) => `
     <h3>${c.title}</h3><p>${c.text}</p>
   </button>`).join('');
 
-// лайтбокс
-const dlg = document.querySelector('.lbx');
-const lbImg = dlg.querySelector('[data-lb-img]');
-let cur = null, idx = 0;
-const show = () => {
-  idx = (idx + cur.n) % cur.n;
-  lbImg.src = `img/${cur.key}-${pad(idx + 1)}.jpg`;
-  lbImg.alt = `${cur.title}, фото ${idx + 1}`;
-  dlg.querySelector('[data-lb-count]').textContent = `${idx + 1} / ${cur.n}`;
+// объект: лист со всеми фото, без листалки; клик по фото — крупно
+const sheet = document.querySelector('.sheet'), zoom = document.querySelector('.zoom');
+const $ = sel => sheet.querySelector(sel);
+let cur = 0, zi = 0;
+function openCase(i) {
+  cur = (i + CASES.length) % CASES.length;
+  const c = CASES[cur], nx = CASES[(cur + 1) % CASES.length];
+  $('[data-meta]').textContent = `Объект ${pad(cur + 1)} / ${pad(CASES.length)} · ${c.date} · ${c.n} фото`;
+  $('[data-title]').textContent = c.title;
+  $('[data-text]').textContent = c.text;
+  $('[data-tags]').innerHTML = c.tags.map(t => `<li>${esc(t)}</li>`).join('');
+  $('[data-photos]').innerHTML = Array.from({ length: c.n }, (_, k) =>
+    `<button data-z="${k}" aria-label="Фото ${k + 1} крупно"><img src="img/${c.key}-${pad(k + 1)}.jpg" alt="${esc(c.title)}, фото ${k + 1}" loading="${k < 3 ? 'eager' : 'lazy'}"></button>`).join('');
+  $('[data-next-title]').textContent = nx.title;
+  if (!sheet.open) { sheet.showModal(); window.lenis?.stop(); }
+  sheet.scrollTo(0, 0);
+}
+const showZoom = () => {
+  const c = CASES[cur];
+  zi = (zi + c.n) % c.n;
+  zoom.querySelector('[data-zi]').src = `img/${c.key}-${pad(zi + 1)}.jpg`;
+  zoom.querySelector('[data-zi]').alt = `${c.title}, фото ${zi + 1}`;
+  zoom.querySelector('[data-zc]').textContent = `${zi + 1} / ${c.n} · ← → · Esc`;
 };
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-case]');
-  if (!b) return;
-  cur = CASES[b.dataset.case]; idx = cur.cover - 1;
-  dlg.querySelector('[data-lb-title]').textContent = cur.title;
-  show(); dlg.showModal(); window.lenis?.stop();
+  if (b) openCase(+b.dataset.case);
 });
-dlg.addEventListener('close', () => window.lenis?.start());
-dlg.querySelector('[data-lb-close]').onclick = () => dlg.close();
-dlg.querySelector('[data-lb-prev]').onclick = () => { idx--; show(); };
-dlg.querySelector('[data-lb-next]').onclick = () => { idx++; show(); };
-dlg.addEventListener('click', e => { if (e.target.matches('.lb, figure')) dlg.close(); });
-dlg.addEventListener('keydown', e => {
-  if (e.key === 'ArrowLeft') { idx--; show(); }
-  if (e.key === 'ArrowRight') { idx++; show(); }
+sheet.addEventListener('click', e => {
+  const z = e.target.closest('[data-z]');
+  if (z) { zi = +z.dataset.z; showZoom(); zoom.showModal(); return; }
+  if (e.target.closest('[data-close]')) sheet.close();
+  if (e.target.closest('[data-next]')) openCase(cur + 1);
+});
+sheet.addEventListener('close', () => window.lenis?.start());
+zoom.addEventListener('click', () => zoom.close());
+zoom.addEventListener('keydown', e => {
+  if (e.key === 'ArrowLeft') { zi--; showZoom(); }
+  if (e.key === 'ArrowRight') { zi++; showZoom(); }
 });
 let tx = null;
-dlg.addEventListener('touchstart', e => (tx = e.touches[0].clientX), { passive: true });
-dlg.addEventListener('touchend', e => {
+zoom.addEventListener('touchstart', e => (tx = e.touches[0].clientX), { passive: true });
+zoom.addEventListener('touchend', e => {
   const dx = e.changedTouches[0].clientX - tx;
-  if (Math.abs(dx) > 40) { idx += dx < 0 ? 1 : -1; show(); }
+  if (Math.abs(dx) > 40) { e.preventDefault(); zi += dx < 0 ? 1 : -1; showZoom(); }
 });
 
 // форма: shortcut: нет endpoint, только показывает «Спасибо» — подключить email+Telegram перед запуском
@@ -101,7 +115,7 @@ if (!motionOK || !hasGL || !libs) {
   try {
     const { createDoor } = await import('./door.min.js');   // сборка из door.js, см. README
     intro.classList.add('ready');   // до ScrollTrigger: высота интро должна быть уже итоговой
-    const door = createDoor(intro.querySelector('canvas'), { frames: ['img/w/wardrobe-03.jpg', 'img/w/glass-03.jpg', 'img/w/loft-02.jpg'], mobile });
+    const door = createDoor(intro.querySelector('canvas'), { frames: ['img/w/wardrobe-03.jpg', 'img/w/glass-03.jpg', 'img/w/loft-02.jpg', 'img/w/alder-02.jpg', 'img/w/sauna-04.jpg', 'img/w/ash-08.jpg'], mobile });
     const cap = intro.querySelector('.cap'), hint = intro.querySelector('.hint');
     const k = (p, a, b) => Math.min(1, Math.max(0, (p - a) / (b - a)));
     // 0–0.8 дверь открывается и камера входит в коридор; 0.74–0.86 проявляется фон hero; 0.82–0.95 текст
@@ -110,6 +124,7 @@ if (!motionOK || !hasGL || !libs) {
       cap.style.opacity = 1 - k(p, 0, 0.1);
       hint.style.opacity = 1 - k(p, 0, 0.05);
       hint.style.visibility = p > 0.05 ? 'hidden' : '';
+      intro.style.setProperty('--tg', Math.min(k(p, 0.44, 0.52), 1 - k(p, 0.64, 0.7)));   // подписи дверей в коридоре
       intro.style.setProperty('--hi', k(p, 0.74, 0.86));
       intro.style.setProperty('--ht', k(p, 0.82, 0.95));
       intro.style.setProperty('--hp', p > 0.85 ? 'auto' : 'none');
