@@ -14,7 +14,7 @@
 @font-face{font-family:Mono;src:url(fonts/jetbrains-mono-latin-wght-normal.woff2) format('woff2');font-weight:100 800;font-display:swap;unicode-range:U+0000-00FF,U+2000-206F}
 
 :root{
-  --bg:#f2efe9; --wall:#ece7df; --card:#faf8f4; --ink:#1d1b18; --muted:#6f685f; --line:#ddd6cc;
+  --bg:#f2efe9; --wall:#ece7df; --card:#faf8f4; --ink:#1d1b18; --muted:#5f584f; --line:#ddd6cc;
   --wood:#7a4e2d; --r:20px; --max:1200px; --pad:clamp(20px,4vw,40px);
 }
 *{box-sizing:border-box;margin:0}
@@ -54,9 +54,9 @@ section{padding:clamp(72px,10vw,128px) 0}
 .intro .stage{position:sticky;top:0;height:100vh;height:100lvh;overflow:hidden;background:#d9d1c5}
 .intro canvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:pointer}
 .cap{position:absolute;z-index:1;left:max(var(--pad),calc((100vw - var(--max)) / 2 + var(--pad)));top:44%;transform:translateY(-50%);max-width:min(420px,30vw);pointer-events:none}
-.cap .mono{display:block;margin-bottom:18px}
+.cap .mono{display:block;margin-bottom:18px;color:#3f3a34}
 .cap .big{font-size:clamp(34px,4vw,56px);font-weight:500;letter-spacing:-.035em;line-height:1.04;margin-bottom:18px}
-.cap p:last-child{color:var(--muted);max-width:30ch}
+.cap p:last-child{color:#3f3a34;max-width:30ch}
 .hint{position:absolute;z-index:2;left:50%;bottom:calc(28px + 100lvh - 100svh);transform:translateX(-50%);display:flex;align-items:center;gap:10px;height:52px;padding:0 22px 0 10px;border-radius:99px;background:rgb(250 248 244/.9);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgb(0 0 0/.06);font-size:15px;white-space:nowrap;box-shadow:0 10px 30px rgb(40 30 20/.14)}
 .hint .mouse{width:34px;height:34px;border-radius:50%;background:var(--ink);display:grid;place-items:center;margin-right:4px}
 .hint .mouse i{width:2px;height:9px;border-radius:2px;background:#fff;animation:wheel 1.6s ease-in-out infinite}
@@ -143,6 +143,7 @@ form{display:grid;gap:16px;align-content:start}
 label{display:grid;gap:8px;font-size:14px;color:rgb(242 239 233/.78)}
 input{font:inherit;color:var(--bg);background:transparent;border:0;border-bottom:1px solid rgb(242 239 233/.3);padding:12px 0;outline:none;border-radius:0}
 input:focus{border-color:var(--bg)}
+input::placeholder{color:rgb(242 239 233/.58)}
 .check{display:flex;gap:10px;align-items:flex-start;font-size:13px}
 .check input{width:18px;height:18px;margin-top:2px;accent-color:#fff;flex:none}
 form .btn{justify-self:start;margin-top:8px}
