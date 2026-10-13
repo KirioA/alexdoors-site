@@ -13,7 +13,8 @@ const ease = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 const span = (p, a, b) => ease(clamp((p - a) / (b - a)));
 
 export function createDoor(canvas, { frames, mobile }) {
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+  // preserveDrawingBuffer на телефоне: иначе мобильный Safari мигает пустым canvas при скролле sticky-блока
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance', preserveDrawingBuffer: mobile });
   renderer.setPixelRatio(Math.min(devicePixelRatio, mobile ? 1.5 : 2));
   renderer.toneMapping = THREE.NeutralToneMapping;
   renderer.toneMappingExposure = 0.92;
@@ -37,6 +38,11 @@ export function createDoor(canvas, { frames, mobile }) {
     mat: new THREE.MeshStandardMaterial({ color: '#f6f4f0', roughness: 0.9 }),
     floor: new THREE.MeshStandardMaterial({ map: planks(), roughness: 0.62 }),
     glow: new THREE.MeshBasicMaterial({ color: '#fff4e0' }),
+    ceramic: new THREE.MeshStandardMaterial({ color: '#efebe4', roughness: 0.5 }),
+    leaf: new THREE.MeshStandardMaterial({ color: '#4d6a43', roughness: 0.55, side: THREE.DoubleSide }),
+    stem: new THREE.MeshStandardMaterial({ color: '#5b4632', roughness: 0.8 }),
+    black: new THREE.MeshStandardMaterial({ color: '#232120', metalness: 0.6, roughness: 0.45 }),
+    rug: new THREE.MeshStandardMaterial({ map: rugTex(), roughness: 1 }),
   };
 
   const mesh = (geo, mat, x = 0, y = 0, z = 0, parent = scene, shadow = true) => {
@@ -87,9 +93,9 @@ export function createDoor(canvas, { frames, mobile }) {
   // рамки с работами справа от двери
   const loader = new THREE.TextureLoader();
   const FR = [
-    { x: 1.2, y: 1.5, w: 0.62, h: 0.78 },
-    { x: 1.86, y: 1.72, w: 0.44, h: 0.56 },
-    { x: 1.86, y: 1.02, w: 0.44, h: 0.56 },
+    { x: 1.2, y: 1.6, w: 0.62, h: 0.78 },
+    { x: 1.86, y: 1.9, w: 0.44, h: 0.56 },
+    { x: 1.86, y: 1.28, w: 0.44, h: 0.56 },
   ];
   FR.forEach((f, i) => {
     const g = new THREE.Group();
@@ -121,6 +127,46 @@ export function createDoor(canvas, { frames, mobile }) {
   lamp.position.set(0.74, 1.66, WALL_T / 2 + 0.22);
   scene.add(lamp);
 
+
+  // интерьер прихожей: стеновые панели, ковёр, растение, скамья
+  const strip = (w, h, x, y, parent = scene) => mesh(rbox(w, h, 0.018, 0.005), M.enamel, x, y, WALL_T / 2 + 0.009, parent);
+  for (const s of [-1, 1]) {
+    const x0 = W / 2 + 0.12, len = 4.2;
+    strip(len, 0.045, s * (x0 + len / 2), 0.92);                        // поручень-молдинг
+    for (let i = 0; i < 6; i++) {                                       // рамки под ним
+      const pw = 0.6, cx = s * (x0 + 0.1 + pw / 2 + i * (pw + 0.1)), cy = 0.5, ph = 0.56, t = 0.022;
+      strip(pw, t, cx, cy + ph / 2); strip(pw, t, cx, cy - ph / 2);
+      strip(t, ph, cx - pw / 2, cy); strip(t, ph, cx + pw / 2, cy);
+    }
+  }
+  mesh(rbox(1.5, 0.012, 1.0, 0.005), M.rug, 0, 0.006, 0.9).receiveShadow = true;
+
+  const plant = new THREE.Group();
+  plant.position.set(-2.95, 0, 0.42);
+  scene.add(plant);
+  mesh(new THREE.CylinderGeometry(0.19, 0.14, 0.46, 40), M.ceramic, 0, 0.23, 0, plant);
+  mesh(new THREE.CylinderGeometry(0.17, 0.17, 0.01, 32), M.stem, 0, 0.44, 0, plant);
+  const leafGeo = new THREE.SphereGeometry(1, 20, 10);
+  let seed = 3; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  for (let i = 0; i < 16; i++) {
+    const a = i * 2.4 + rnd(), h = 0.62 + (i / 16) * 0.85, r = 0.08 + rnd() * 0.12;
+    const stem = mesh(new THREE.CylinderGeometry(0.008, 0.01, h - 0.4, 6), M.stem, Math.cos(a) * r / 2, 0.4 + (h - 0.4) / 2, Math.sin(a) * r / 2, plant);
+    stem.rotation.set(Math.sin(a) * 0.18, 0, -Math.cos(a) * 0.18);
+    const lf = mesh(leafGeo, M.leaf, Math.cos(a) * r, h, Math.sin(a) * r, plant);
+    lf.scale.set(0.13, 0.012, 0.085);
+    lf.rotation.set(0.5 + rnd() * 0.5, -a, 0.3 + rnd() * 0.4);
+  }
+
+  const bench = new THREE.Group();
+  bench.position.set(1.5, 0, 0.32);
+  scene.add(bench);
+  mesh(rbox(1.15, 0.045, 0.36, 0.01), M.walnut, 0, 0.44, 0, bench);
+  for (const x of [-0.52, 0.52]) for (const z of [-0.14, 0.14]) mesh(box(0.025, 0.42, 0.025), M.black, x, 0.21, z, bench);
+  mesh(rbox(0.3, 0.05, 0.22, 0.004), M.mat, -0.3, 0.488, 0, bench).rotation.y = 0.12;
+  mesh(rbox(0.26, 0.04, 0.2, 0.004), M.walnut, -0.29, 0.533, 0.01, bench).rotation.y = -0.08;
+  mesh(new THREE.SphereGeometry(0.07, 32, 16), M.ceramic, 0.33, 0.53, 0, bench).scale.y = 1.3;
+  mesh(new THREE.CylinderGeometry(0.004, 0.004, 0.2, 6), M.stem, 0.34, 0.66, 0, bench).rotation.z = 0.25;
+
   // пол
   mesh(new THREE.PlaneGeometry(30, 30), M.floor).rotation.x = -Math.PI / 2;
 
@@ -145,19 +191,22 @@ export function createDoor(canvas, { frames, mobile }) {
   const look = new THREE.Vector3(), start = new THREE.Vector3(), lookS = new THREE.Vector3();
   let p = 0, mx = 0, my = 0, dirty = true, live = true, portrait = false;
 
+  let lastW = 0, lastH = 0;
   function resize() {
     const w = canvas.clientWidth, h = canvas.clientHeight;
-    if (!w || !h) return;
+    if (!w || !h || (w === lastW && h === lastH)) return;
+    lastW = w; lastH = h;
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
     portrait = camera.aspect < 1;
     camera.fov = portrait ? 52 : 34;
     camera.updateProjectionMatrix();
     dirty = true;
+    frame();   // сразу: setSize очищает canvas, без кадра будет вспышка фона
   }
 
   function frame() {
-    if (!live || !dirty) return;
+    if (!live || (!dirty && !mobile)) return;   // телефон: рисуем каждый кадр, без пропусков
     dirty = false;
     const press = Math.sin(clamp(p / 0.12) * Math.PI);           // нажать ручку и отпустить
     for (const l of front.levers) l.rotation.z = 0.5 * press;
@@ -253,5 +302,21 @@ function planks() {
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
   t.repeat.set(15, 15);
   t.anisotropy = 8;
+  return t;
+}
+
+// ковёр: тёплый серый с каймой
+function rugTex() {
+  const c = document.createElement('canvas'); c.width = 512; c.height = 342;
+  const g = c.getContext('2d');
+  g.fillStyle = '#b9ab98'; g.fillRect(0, 0, c.width, c.height);
+  g.strokeStyle = '#8f7f6b'; g.lineWidth = 10; g.strokeRect(22, 22, c.width - 44, c.height - 44);
+  g.strokeStyle = '#d6cbbb'; g.lineWidth = 3; g.strokeRect(40, 40, c.width - 80, c.height - 80);
+  for (let i = 0; i < 4000; i++) {                                      // ворс
+    g.fillStyle = Math.random() > 0.5 ? 'rgba(255,255,255,.06)' : 'rgba(60,40,20,.06)';
+    g.fillRect(Math.random() * c.width, Math.random() * c.height, 2, 2);
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
   return t;
 }
